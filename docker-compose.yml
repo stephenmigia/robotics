@@ -1,0 +1,44 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/robotics_db?createDatabaseIfNotExist=true
+      - SPRING_DATASOURCE_USERNAME=robot_user
+      - SPRING_DATASOURCE_PASSWORD=robot_pass
+      - SIMULATOR_URL=http://robot-sim:5000
+      - SIMULATOR_WS_URL=ws://robot-sim:5000/ws/telemetry
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+    networks:
+      - robotics-net
+
+  robot-sim:
+    image: ghcr.io/francescodelduchetto/cmp9134_2526_robotsim:latest
+    ports:
+      - "5000:5000"
+    networks:
+      - robotics-net
+
+  mysql-db:
+    image: mysql:8.0
+    environment:
+      - MYSQL_DATABASE=robotics_db
+      - MYSQL_USER=robot_user
+      - MYSQL_PASSWORD=robot_pass
+      - MYSQL_ROOT_PASSWORD=root_pass
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_pass"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - robotics-net
+
+networks:
+  robotics-net:
+    driver: bridge
