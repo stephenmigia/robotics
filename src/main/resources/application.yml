@@ -1,0 +1,18 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:h2:mem:robotics_db;DB_CLOSE_DELAY=-1}
+    username: ${SPRING_DATASOURCE_USERNAME:sa}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+simulator:
+  url: ${SIMULATOR_URL:http://localhost:5000}
+  ws:
+    url: ${SIMULATOR_WS_URL:ws://localhost:5000/ws/telemetry}
+
+logging:
+  level:
+    com.robotics.control: DEBUG
