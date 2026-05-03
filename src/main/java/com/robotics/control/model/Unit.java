@@ -1,4 +1,7 @@
-﻿package com.robotics.control.model;
+package com.robotics.control.model;
+
+import com.robotics.control.sensor.LidarSensor;
+import com.robotics.control.sensor.ProximitySensor;
 
 public class Unit {
     private String robotId = "CMP9134-VRobot";
@@ -10,6 +13,9 @@ public class Unit {
     private final double drainRatePerStep = 0.5;
     private final double chargeRatePerSecond = 2.0;
     private final double lowBatteryThreshold = 20.0;
+
+    private final ProximitySensor proximitySensor = new ProximitySensor();
+    private final LidarSensor lidarSensor = new LidarSensor();
 
     public Unit() {}
 
@@ -32,6 +38,9 @@ public class Unit {
     public double getDrainRatePerStep() { return drainRatePerStep; }
     public double getChargeRatePerSecond() { return chargeRatePerSecond; }
     public double getLowBatteryThreshold() { return lowBatteryThreshold; }
+
+    public ProximitySensor getProximitySensor() { return proximitySensor; }
+    public LidarSensor getLidarSensor() { return lidarSensor; }
 
     public void updateState(Position pos, double battery, Status status) {
         this.currentPosition = pos;
