@@ -1,0 +1,861 @@
+/* ==========================================================================
+   ROBOTICS CONTROL CENTER - MONOCHROMATIC MINIMALIST COCKPIT SYSTEM
+   ========================================================================== */
+
+:root {
+    --bg-main: #08090b;
+    --card-bg: #0f1115;
+    --border-color: rgba(255, 255, 255, 0.04);
+    --border-hover: rgba(255, 255, 255, 0.1);
+    --text-primary: #f3f4f6;
+    --text-secondary: #8e95a2;
+    --text-muted: #4e5563;
+    
+    /* Strict Minimalist Color Palette */
+    --accent: #5c85ff;
+    --accent-bg: rgba(92, 133, 255, 0.06);
+    --accent-border: rgba(92, 133, 255, 0.2);
+    
+    --success: #10b981;
+    --success-bg: rgba(16, 185, 129, 0.06);
+    --success-border: rgba(16, 185, 129, 0.15);
+    
+    --warning: #f59e0b;
+    --warning-bg: rgba(245, 158, 11, 0.06);
+    --warning-border: rgba(245, 158, 11, 0.15);
+    
+    --error: #ef4444;
+    --error-bg: rgba(239, 68, 68, 0.06);
+    --error-border: rgba(239, 68, 68, 0.15);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    font-family: 'Outfit', sans-serif;
+    overflow-x: hidden;
+    min-height: 100vh;
+    letter-spacing: -0.01em;
+}
+
+/* --- MAIN CONTAINER LAYOUT --- */
+.dashboard-wrapper {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* --- CARD STRUCTURES (FLAT MATTE STYLE) --- */
+.glass-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.glass-card:hover {
+    border-color: var(--border-hover);
+}
+
+/* --- HEADER BAR --- */
+.main-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 24px;
+}
+
+.header-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logo-icon {
+    font-size: 20px;
+    filter: grayscale(1);
+    opacity: 0.9;
+}
+
+.header-logo h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+}
+
+.header-logo h1 span {
+    color: var(--text-muted);
+    font-weight: 400;
+    font-size: 14px;
+    margin-left: 2px;
+}
+
+.user-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+/* TELEMETRY LINK BUTTON */
+.conn-pulse-btn {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: default;
+    transition: all 0.3s ease;
+}
+
+.conn-pulse-btn.active-green {
+    background: var(--success-bg);
+    border-color: var(--success-border);
+    color: var(--success);
+}
+
+.conn-pulse-btn.active-blue {
+    background: var(--accent-bg);
+    border-color: var(--accent-border);
+    color: var(--accent);
+    animation: buttonPulseBlue 1.5s infinite alternate;
+}
+
+.conn-pulse-btn.error-red {
+    background: var(--error-bg);
+    border-color: var(--error-border);
+    color: var(--error);
+    animation: buttonPulseRed 1.5s infinite alternate;
+}
+
+.pulse-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--text-muted);
+    transition: all 0.3s ease;
+}
+
+.pulse-dot.active-green {
+    background-color: var(--success);
+    box-shadow: 0 0 8px var(--success);
+    animation: simplePulse 1.5s infinite;
+}
+
+.pulse-dot.active-blue {
+    background-color: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: simplePulse 1.2s infinite;
+}
+
+.pulse-dot.error-red {
+    background-color: var(--error);
+    box-shadow: 0 0 8px var(--error);
+    animation: simplePulse 0.8s infinite;
+}
+
+@keyframes simplePulse {
+    0% { transform: scale(1); opacity: 0.7; }
+    50% { transform: scale(1.3); opacity: 1; }
+    100% { transform: scale(1); opacity: 0.7; }
+}
+
+@keyframes buttonPulseBlue {
+    0% { border-color: rgba(92, 133, 255, 0.2); }
+    100% { border-color: rgba(92, 133, 255, 0.6); }
+}
+
+@keyframes buttonPulseRed {
+    0% { border-color: rgba(239, 68, 68, 0.2); }
+    100% { border-color: rgba(239, 68, 68, 0.6); }
+}
+
+.user-badge {
+    background: var(--accent-bg);
+    border: 1px solid var(--accent-border);
+    color: var(--accent);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.username {
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+.logout-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.logout-btn:hover {
+    background: var(--error-bg);
+    border-color: var(--error-border);
+    color: var(--error);
+}
+
+/* --- DASHBOARD WORKSPACE GRID --- */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 20px;
+}
+
+.left-column {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* --- COMPONENT HEADINGS --- */
+h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+    padding-bottom: 6px;
+}
+
+/* --- DIAGNOSTICS & SYSTEM GAUGES --- */
+.gauges-flex {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.gauge-box {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.gauge-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.battery-track {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.battery-fill {
+    height: 100%;
+    background-color: var(--accent);
+    border-radius: 3px;
+    transition: width 0.4s ease;
+}
+
+.battery-fill.low {
+    background-color: var(--warning);
+}
+
+.battery-fill.critical {
+    background-color: var(--error);
+}
+
+.status-badge-container {
+    margin-top: 2px;
+}
+
+.status-indicator {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    display: inline-block;
+    border: 1px solid transparent;
+}
+
+.status-indicator.idle {
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--text-secondary);
+    border-color: var(--border-color);
+}
+
+.status-indicator.moving {
+    background: var(--accent-bg);
+    color: var(--accent);
+    border-color: var(--accent-border);
+}
+
+.status-indicator.low_battery {
+    background: var(--warning-bg);
+    color: var(--warning);
+    border-color: var(--warning-border);
+}
+
+.status-indicator.stuck {
+    background: var(--error-bg);
+    color: var(--error);
+    border-color: var(--error-border);
+}
+
+/* --- TELEMETRIC SENSORS --- */
+.sensors-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+
+.sensor-mini-box {
+    background: rgba(255, 255, 255, 0.01);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 8px 4px;
+    text-align: center;
+}
+
+.sensor-mini-box .label {
+    display: block;
+    font-size: 8px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+}
+
+.sensor-mini-box .val {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+/* --- LIDAR SCANNER --- */
+.lidar-sweep-panel {
+    margin-top: 14px;
+    border: 1px solid var(--border-color);
+    padding: 10px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.01);
+}
+
+.lidar-sweep-panel .label {
+    font-size: 8px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    display: block;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+}
+
+.lidar-spark-bar {
+    width: 3px;
+    background-color: var(--text-secondary);
+    opacity: 0.3;
+    border-radius: 1px 1px 0 0;
+    transition: height 0.2s ease, background-color 0.2s;
+}
+
+.lidar-bars-container {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    height: 28px;
+    width: 100%;
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* --- COMMAND INPUTS & JOG D-PAD --- */
+.commander-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.form-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.input-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.input-field label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.input-field input {
+    background: rgba(255, 255, 255, 0.01);
+    border: 1px solid var(--border-color);
+    padding: 8px 10px;
+    border-radius: 6px;
+    color: #fff;
+    font-family: inherit;
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.input-field input:focus {
+    border-color: var(--accent);
+}
+
+.button-row {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 8px;
+}
+
+button {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.primary-btn {
+    background-color: var(--text-primary);
+    color: var(--bg-main);
+}
+
+.primary-btn:hover:not(:disabled) {
+    background-color: #ffffff;
+}
+
+.danger-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+.danger-btn:hover:not(:disabled) {
+    background: var(--error-bg);
+    border-color: var(--error-border);
+    color: var(--error);
+}
+
+button:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.viewer-msg {
+    text-align: center;
+    background: rgba(255, 255, 255, 0.01);
+    border: 1px solid var(--border-color);
+    padding: 16px;
+    border-radius: 8px;
+    color: var(--text-muted);
+}
+
+.viewer-msg p {
+    font-size: 10px;
+    font-weight: 600;
+}
+
+/* --- STEERING D-PAD --- */
+.dpad-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 6px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 12px;
+}
+
+.dpad {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.dpad-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.dpad-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.01);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    border-radius: 6px;
+    font-size: 10px;
+}
+
+.dpad-btn:hover {
+    border-color: var(--accent-border);
+    color: var(--accent);
+    background: var(--accent-bg);
+}
+
+.dpad-btn.active-pulse {
+    border-color: var(--accent);
+    background-color: var(--accent);
+    color: var(--bg-main);
+    transform: scale(0.95);
+}
+
+.dpad-center {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    background: transparent;
+    border: 1px solid transparent;
+}
+
+.dpad-keyboard-hint {
+    margin-top: 8px;
+    font-size: 9px;
+    color: var(--text-muted);
+}
+
+/* --- TACTICAL GRID MAP --- */
+.middle-column {
+    display: flex;
+    flex-direction: column;
+}
+
+.map-title-bar {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+    padding-bottom: 6px;
+}
+
+.map-dimensions {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.grid-scroll-wrapper {
+    background: #090b0d;
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.map-grid {
+    display: grid;
+    grid-template-columns: repeat(21, minmax(18px, 1fr));
+    gap: 2px;
+    max-width: 480px;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+}
+
+.grid-cell {
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 2px;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.grid-cell:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.charging-station {
+    background: var(--accent-bg);
+    border-color: var(--accent-border);
+    color: var(--accent);
+    font-weight: 800;
+}
+
+.obstacle-cell {
+    background: #374151 !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    cursor: not-allowed;
+}
+
+.robot-pos {
+    background-color: #3b82f6 !important;
+    border: 2px solid #ffffff !important;
+    border-radius: 50%;
+    transform: scale(0.85);
+    box-shadow: 0 0 14px rgba(59, 130, 246, 0.8), inset 0 0 4px rgba(255, 255, 255, 0.6);
+    z-index: 10;
+    animation: robotPulse 2s infinite alternate;
+}
+
+@keyframes robotPulse {
+    0% { box-shadow: 0 0 8px rgba(59, 130, 246, 0.6); }
+    100% { box-shadow: 0 0 16px rgba(59, 130, 246, 1); }
+}
+
+.robot-glow {
+    display: none;
+}
+
+.legend {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 14px;
+    width: 100%;
+}
+
+.legend-item {
+    font-size: 10px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.legend-color {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    display: inline-block;
+}
+
+.legend-color.robot { background-color: #3b82f6; border-radius: 50%; border: 1px solid #ffffff; }
+.legend-color.charging { background-color: var(--accent-border); }
+.legend-color.obstacle { background-color: #374151; border: 1px solid rgba(255, 255, 255, 0.08); }
+
+/* --- FOOTER: AUDIT LOG TABLE --- */
+.audit-logs-card {
+    width: 100%;
+}
+
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    max-height: 200px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    text-align: left;
+}
+
+th {
+    font-weight: 600;
+    color: var(--text-muted);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-color);
+    text-transform: uppercase;
+}
+
+td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.01);
+    color: var(--text-secondary);
+}
+
+.timestamp-col {
+    color: var(--text-muted);
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+.username-col {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.cmd-badge {
+    background: var(--accent-bg);
+    color: var(--accent);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 600;
+}
+
+.status-col {
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+.empty-msg {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 20px;
+}
+
+/* --- FLOATING TOAST NOTIFICATION CONTAINER --- */
+.toast-container {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 99999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 320px;
+    width: 100%;
+    pointer-events: none;
+}
+
+.toast {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 500;
+    pointer-events: auto;
+    animation: toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transition: all 0.3s ease;
+}
+
+.toast.toast-success {
+    border-left: 3px solid var(--success);
+}
+.toast.toast-info {
+    border-left: 3px solid var(--accent);
+}
+.toast.toast-warning {
+    border-left: 3px solid var(--warning);
+}
+.toast.toast-error {
+    border-left: 3px solid var(--error);
+}
+
+@keyframes toastSlideIn {
+    0% { transform: translateY(-10px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+}
+
+.toast-closing {
+    opacity: 0;
+    transform: translateY(-20px);
+}
+
+/* --- LIDAR CARDINAL PLANE --- */
+.cardinal-plane {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 10px;
+    margin: 15px auto;
+    max-width: 260px;
+    aspect-ratio: 1;
+    position: relative;
+}
+
+.cardinal-cell {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    font-size: 9px;
+    color: var(--text-muted);
+    transition: all 0.25s ease;
+    min-height: 52px;
+}
+
+.cardinal-cell:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--accent-border);
+}
+
+.cardinal-cell.center {
+    background: rgba(59, 130, 246, 0.08);
+    border-color: rgba(59, 130, 246, 0.3);
+    color: #3b82f6;
+    font-weight: bold;
+}
+
+.cardinal-cell.center .center-icon {
+    font-size: 16px;
+    margin-top: 4px;
+    animation: robotGentlyFloat 3s ease-in-out infinite alternate;
+}
+
+@keyframes robotGentlyFloat {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-3px); }
+}
+
+.cardinal-cell .direction-label {
+    font-weight: 700;
+    color: var(--text-secondary);
+    font-size: 8px;
+    letter-spacing: 0.05em;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+}
+
+.cardinal-cell .distance-val {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    font-family: 'Space Grotesk', sans-serif;
+}
+

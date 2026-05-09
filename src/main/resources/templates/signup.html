@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Robotics Control Center - Operator Registration</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+    <style>
+        .auth-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .auth-card {
+            width: 100%;
+            max-width: 440px;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .auth-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+
+        .auth-logo h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+
+        .auth-logo h1 span {
+            color: var(--neon-blue);
+            font-weight: 300;
+        }
+
+        .auth-msg {
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: left;
+            border: 1px solid transparent;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .auth-msg.error {
+            background: rgba(255, 8, 68, 0.1);
+            border-color: var(--neon-pink);
+            color: var(--neon-pink);
+        }
+
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            text-align: left;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input, .form-group select {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px 16px;
+            border-radius: 8px;
+            color: #fff;
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-group select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            background-size: 14px;
+            padding-right: 40px;
+            cursor: pointer;
+        }
+
+        .form-group select option {
+            background: #0f172a;
+            color: #fff;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.25);
+        }
+
+        /* Password Strength Meter */
+        .strength-container {
+            margin-top: 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .strength-bars {
+            display: flex;
+            gap: 4px;
+            width: 100%;
+            height: 4px;
+        }
+
+        .strength-bar {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 2px;
+            transition: background 0.3s ease;
+        }
+
+        .strength-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-align: right;
+        }
+
+        .auth-btn {
+            margin-top: 10px;
+            width: 100%;
+            padding: 14px;
+            font-size: 13px;
+        }
+
+        .auth-links {
+            margin-top: 24px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .auth-links a {
+            color: var(--neon-blue);
+            text-decoration: none;
+            font-weight: 600;
+            transition: text-shadow 0.2s;
+        }
+
+        .auth-links a:hover {
+            text-shadow: 0 0 8px rgba(0, 242, 254, 0.6);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="glow-sphere sphere-1"></div>
+    <div class="glow-sphere sphere-2"></div>
+
+    <div class="auth-container">
+        <div class="glass-card auth-card">
+            <!-- Brand Logo -->
+            <div class="auth-logo">
+                <span class="logo-icon" style="font-size: 32px;">🚀</span>
+                <h1>CONTROL<span>CENTER</span></h1>
+            </div>
+
+            <h2>OPERATOR REGISTRATION</h2>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 24px;">
+                Create security credentials to register an authorized operator.
+            </p>
+
+            <!-- Dynamic Error Alerts -->
+            <div th:if="${error}" class="auth-msg error" th:text="${'❌ ' + error}">
+                Error message
+            </div>
+
+            <!-- Sign Up Form -->
+            <form class="auth-form" th:action="@{/signup}" method="post" id="signupForm">
+                <div class="form-group">
+                    <label for="username">OPERATOR USERNAME</label>
+                    <input type="text" id="username" name="username" placeholder="Choose a username" required autofocus minlength="3" maxlength="20">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">SECURITY PASSWORD</label>
+                    <input type="password" id="password" name="password" placeholder="At least 6 characters" required minlength="6">
+                    <!-- Strength Indicators -->
+                    <div class="strength-container">
+                        <div class="strength-bars">
+                            <div class="strength-bar" id="bar1"></div>
+                            <div class="strength-bar" id="bar2"></div>
+                            <div class="strength-bar" id="bar3"></div>
+                            <div class="strength-bar" id="bar4"></div>
+                        </div>
+                        <div class="strength-label" id="strengthText">Weak</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="role">SECURITY ROLE ACCESS</label>
+                    <select id="role" name="role" required>
+                        <option value="VIEWER">VIEWER (Read-only telemetries)</option>
+                        <option value="COMMANDER">COMMANDER (Full steering permissions)</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="primary-btn auth-btn">PROVISION OPERATOR</button>
+            </form>
+
+            <!-- Switcher Link -->
+            <div class="auth-links">
+                Already registered? <a href="/login">SIGN IN TO SECURE CHANNEL</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Strength Checker Script -->
+    <script>
+        const passwordInput = document.getElementById('password');
+        const bar1 = document.getElementById('bar1');
+        const bar2 = document.getElementById('bar2');
+        const bar3 = document.getElementById('bar3');
+        const bar4 = document.getElementById('bar4');
+        const strengthText = document.getElementById('strengthText');
+
+        passwordInput.addEventListener('input', function() {
+            const val = passwordInput.value;
+            let score = 0;
+
+            if (val.length >= 6) score++;
+            if (val.length >= 10) score++;
+            if (/[A-Z]/.test(val)) score++;
+            if (/[0-9]/.test(val)) score++;
+            if (/[^A-Za-z0-9]/.test(val)) score++;
+
+            // Normalise score to max 4
+            score = Math.min(4, score);
+
+            // Reset bars
+            bar1.style.background = 'rgba(255, 255, 255, 0.05)';
+            bar2.style.background = 'rgba(255, 255, 255, 0.05)';
+            bar3.style.background = 'rgba(255, 255, 255, 0.05)';
+            bar4.style.background = 'rgba(255, 255, 255, 0.05)';
+
+            if (val.length === 0) {
+                strengthText.innerText = 'Too short';
+                strengthText.style.color = 'var(--text-secondary)';
+                return;
+            }
+
+            if (score === 1) {
+                bar1.style.background = 'var(--neon-pink)';
+                strengthText.innerText = 'Weak';
+                strengthText.style.color = 'var(--neon-pink)';
+            } else if (score === 2) {
+                bar1.style.background = 'var(--neon-yellow)';
+                bar2.style.background = 'var(--neon-yellow)';
+                strengthText.innerText = 'Fair';
+                strengthText.style.color = 'var(--neon-yellow)';
+            } else if (score === 3) {
+                bar1.style.background = 'var(--neon-blue)';
+                bar2.style.background = 'var(--neon-blue)';
+                bar3.style.background = 'var(--neon-blue)';
+                strengthText.innerText = 'Good';
+                strengthText.style.color = 'var(--neon-blue)';
+            } else if (score === 4) {
+                bar1.style.background = 'var(--neon-green)';
+                bar2.style.background = 'var(--neon-green)';
+                bar3.style.background = 'var(--neon-green)';
+                bar4.style.background = 'var(--neon-green)';
+                strengthText.innerText = 'Strong';
+                strengthText.style.color = 'var(--neon-green)';
+            }
+        });
+    </script>
+</body>
+</html>

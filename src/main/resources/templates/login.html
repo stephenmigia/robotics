@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Robotics Control Center - Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+    <style>
+        .auth-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .auth-card {
+            width: 100%;
+            max-width: 440px;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .auth-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+
+        .auth-logo h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+
+        .auth-logo h1 span {
+            color: var(--neon-blue);
+            font-weight: 300;
+        }
+
+        .auth-msg {
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: left;
+            border: 1px solid transparent;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .auth-msg.error {
+            background: rgba(255, 8, 68, 0.1);
+            border-color: var(--neon-pink);
+            color: var(--neon-pink);
+        }
+
+        .auth-msg.success {
+            background: rgba(57, 255, 20, 0.1);
+            border-color: var(--neon-green);
+            color: var(--neon-green);
+        }
+
+        .auth-msg.info {
+            background: rgba(0, 242, 254, 0.1);
+            border-color: var(--neon-blue);
+            color: var(--neon-blue);
+        }
+
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            text-align: left;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px 16px;
+            border-radius: 8px;
+            color: #fff;
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-group input:focus {
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.25);
+        }
+
+        .auth-btn {
+            margin-top: 10px;
+            width: 100%;
+            padding: 14px;
+            font-size: 13px;
+        }
+
+        .auth-links {
+            margin-top: 24px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .auth-links a {
+            color: var(--neon-blue);
+            text-decoration: none;
+            font-weight: 600;
+            transition: text-shadow 0.2s;
+        }
+
+        .auth-links a:hover {
+            text-shadow: 0 0 8px rgba(0, 242, 254, 0.6);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="glow-sphere sphere-1"></div>
+    <div class="glow-sphere sphere-2"></div>
+
+    <div class="auth-container">
+        <div class="glass-card auth-card">
+            <!-- Brand Logo -->
+            <div class="auth-logo">
+                <span class="logo-icon" style="font-size: 32px;">🚀</span>
+                <h1>CONTROL<span>CENTER</span></h1>
+            </div>
+
+            <h2>OPERATOR SIGN IN</h2>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 24px;">
+                Enter authorization credentials to gain access grid map metrics.
+            </p>
+
+            <!-- Dynamic Alerts -->
+            <div th:if="${param.error}" class="auth-msg error">
+                ❌ <strong>Access Denied:</strong> Invalid username or password credentials.
+            </div>
+            <div th:if="${param.registered}" class="auth-msg success">
+                ✅ <strong>Operator Registered:</strong> Profile successfully created! You may now sign in.
+            </div>
+            <div th:if="${param.logout}" class="auth-msg info">
+                🔒 <strong>Secured Logout:</strong> Session successfully terminated.
+            </div>
+
+            <!-- Login Form -->
+            <form class="auth-form" th:action="@{/login}" method="post">
+                <div class="form-group">
+                    <label for="username">OPERATOR USERNAME</label>
+                    <input type="text" id="username" name="username" placeholder="e.g. commander" required autofocus>
+                </div>
+                <div class="form-group" style="position: relative;">
+                    <label for="password">SECURITY PASSWORD</label>
+                    <input type="password" id="password" name="password" placeholder="••••••••" required>
+                </div>
+                
+                <button type="submit" class="primary-btn auth-btn">ACCESS PROTOCOLS</button>
+            </form>
+
+            <!-- Switcher Link -->
+            <div class="auth-links">
+                Need tactical credentials? <a href="/signup">REGISTER NEW OPERATOR</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

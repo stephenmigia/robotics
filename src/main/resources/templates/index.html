@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Robotics Control Center</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+    <!-- SockJS and STOMP CDN Clients -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <style>
+        /* Premium Click-to-Move Target Animation */
+        .target-cell {
+            position: relative;
+            background-color: rgba(58, 134, 255, 0.2) !important;
+            border: 2px dashed #3a86ff !important;
+            box-shadow: 0 0 12px rgba(58, 134, 255, 0.6);
+            animation: targetPulse 1.5s infinite;
+        }
+        .target-cell::after {
+            content: '🎯';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.8rem;
+            animation: crosshairSpin 3s linear infinite;
+        }
+        @keyframes targetPulse {
+            0% { box-shadow: 0 0 8px rgba(58, 134, 255, 0.4); }
+            50% { box-shadow: 0 0 16px rgba(58, 134, 255, 0.9); }
+            100% { box-shadow: 0 0 8px rgba(58, 134, 255, 0.4); }
+        }
+        @keyframes crosshairSpin {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        /* Battery Glow & Dead Styles */
+        .battery-fill.charging {
+            background: linear-gradient(90deg, #06d6a0, #52b788) !important;
+            box-shadow: 0 0 15px #06d6a0;
+            animation: chargingPulse 2s infinite;
+        }
+        @keyframes chargingPulse {
+            0% { opacity: 0.8; box-shadow: 0 0 10px #06d6a0; }
+            50% { opacity: 1.0; box-shadow: 0 0 22px #06d6a0; }
+            100% { opacity: 0.8; box-shadow: 0 0 10px #06d6a0; }
+        }
+        .battery-fill.dead {
+            background: #d90429 !important;
+            width: 0% !important;
+        }
+
+        /* Battery Info Label */
+        .battery-info-label {
+            font-size: 0.75rem;
+            color: #8d99ae;
+            margin-top: 6px;
+            display: block;
+            text-align: right;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <!-- Floating Minimal Toast Notification Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <div class="dashboard-wrapper">
+        <!-- TOP HEADER BAR -->
+        <header class="main-header glass-card">
+            <div class="header-logo">
+                <span class="logo-icon">▲</span>
+                <h1>CONTROL<span>CENTER</span></h1>
+            </div>
+            <div class="user-meta">
+                <button class="conn-pulse-btn active-green" id="connBtn" title="REST API Connection Status">
+                    <span class="pulse-dot active-green" id="pulseDot"></span>
+                    <span id="connStatusText">API STATUS: ONLINE</span>
+                </button>
+                <span class="user-badge" th:text="${role}">ROLE</span>
+                <span class="username" th:text="${username}">username</span>
+                <a href="/logout" class="logout-btn">Sign Out</a>
+            </div>
+        </header>
+
+        <!-- MAIN LAYOUT GRID -->
+        <main class="dashboard-grid">
+            
+            <!-- LEFT COLUMN: INSTRUMENTS & STATS -->
+            <section class="left-column">
+                <!-- METRICS BLOCK -->
+                <div class="glass-card metric-card">
+                    <h2>System Diagnostics</h2>
+                    <div class="gauges-flex">
+                        <!-- Battery Gauge -->
+                        <div class="gauge-box">
+                            <div class="gauge-header">
+                                <span>BATTERY LEVEL</span>
+                                <span class="gauge-percentage" id="batteryText" th:text="${#numbers.formatDecimal(unit.currentBattery, 1, 1) + '%'}">100%</span>
+                            </div>
+                            <div class="battery-track">
+                                <div class="battery-fill" id="batteryFill" th:style="'width: ' + ${unit.currentBattery} + '%'"></div>
+                            </div>
+                            <span class="battery-info-label">Drain: 0.5%/step | Charge: 2.0%/s at (0,0)</span>
+                        </div>
+
+                        <!-- Status Badge -->
+                        <div class="gauge-box">
+                            <div class="gauge-header">
+                                <span>OPERATIONAL PROFILE</span>
+                            </div>
+                            <div class="status-badge-container">
+                                <span class="status-indicator" id="statusBadge" th:classappend="${#strings.toLowerCase(unit.currentStatus)}" th:text="${unit.currentStatus}">IDLE</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LIDAR CARDINAL PLANE -->
+                <div class="glass-card telemetry-card">
+                    <h2>Lidar Cardinal Plane</h2>
+                    <div class="cardinal-plane">
+                        <!-- NW, N, NE -->
+                        <div class="cardinal-cell" id="cellNW">
+                            <span class="direction-label">NW</span>
+                            <span class="distance-val" id="valNW" th:text="${unit.lidarSensor.getReadingAtDegree(135)}">--</span>
+                        </div>
+                        <div class="cardinal-cell" id="cellN">
+                            <span class="direction-label">N (90°)</span>
+                            <span class="distance-val" id="valN" th:text="${unit.lidarSensor.getReadingAtDegree(90)}">--</span>
+                        </div>
+                        <div class="cardinal-cell" id="cellNE">
+                            <span class="direction-label">NE</span>
+                            <span class="distance-val" id="valNE" th:text="${unit.lidarSensor.getReadingAtDegree(45)}">--</span>
+                        </div>
+
+                        <!-- W, Center, E -->
+                        <div class="cardinal-cell" id="cellW">
+                            <span class="direction-label">W (180°)</span>
+                            <span class="distance-val" id="valW" th:text="${unit.lidarSensor.getReadingAtDegree(180)}">--</span>
+                        </div>
+                        <div class="cardinal-cell center">
+                            <span class="direction-label">ROBOT</span>
+                            <span class="center-icon">🤖</span>
+                        </div>
+                        <div class="cardinal-cell" id="cellE">
+                            <span class="direction-label">E (0°)</span>
+                            <span class="distance-val" id="valE" th:text="${unit.lidarSensor.getReadingAtDegree(0)}">--</span>
+                        </div>
+
+                        <!-- SW, S, SE -->
+                        <div class="cardinal-cell" id="cellSW">
+                            <span class="direction-label">SW</span>
+                            <span class="distance-val" id="valSW" th:text="${unit.lidarSensor.getReadingAtDegree(225)}">--</span>
+                        </div>
+                        <div class="cardinal-cell" id="cellS">
+                            <span class="direction-label">S (270°)</span>
+                            <span class="distance-val" id="valS" th:text="${unit.lidarSensor.getReadingAtDegree(270)}">--</span>
+                        </div>
+                        <div class="cardinal-cell" id="cellSE">
+                            <span class="direction-label">SE</span>
+                            <span class="distance-val" id="valSE" th:text="${unit.lidarSensor.getReadingAtDegree(315)}">--</span>
+                        </div>
+                    </div>
+                    
+                    <div class="lidar-sweep-panel">
+                        <span class="label">Lidar 360° Sweep Array</span>
+                        <div class="lidar-progress-box">
+                            <div class="lidar-bars-container" id="lidarContainer">
+                                <!-- Spark bars will be generated in JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CONTROL PAD -->
+                <div class="glass-card control-card">
+                    <h2>Command Protocols</h2>
+                    
+                    <!-- Form input control for COMMANDER -->
+                    <div th:if="${isCommander}" class="commander-form">
+                        <div class="form-inputs">
+                            <div class="input-field">
+                                <label for="coordX">Coordinate X</label>
+                                <input type="number" id="coordX" min="0" max="20" placeholder="0">
+                            </div>
+                            <div class="input-field">
+                                <label for="coordY">Coordinate Y</label>
+                                <input type="number" id="coordY" min="0" max="20" placeholder="0">
+                            </div>
+                        </div>
+                        <div class="button-row">
+                            <button id="moveBtn" class="primary-btn">TRANSMIT MOVE</button>
+                            <button id="resetBtn" class="danger-btn">RESET</button>
+                        </div>
+
+                        <!-- Step steering D-pad -->
+                        <div class="dpad-container">
+                            <div class="dpad">
+                                <button id="dpadN" class="dpad-btn up" title="Steer North (W / Up)">▲</button>
+                                <div class="dpad-row">
+                                    <button id="dpadW" class="dpad-btn left" title="Steer West (A / Left)">◀</button>
+                                    <div class="dpad-center">🤖</div>
+                                    <button id="dpadE" class="dpad-btn right" title="Steer East (D / Right)">▶</button>
+                                </div>
+                                <button id="dpadS" class="dpad-btn down" title="Steer South (S / Down)">▼</button>
+                            </div>
+                            <span class="dpad-keyboard-hint">Steering: WASD or Arrow Keys</span>
+                        </div>
+                    </div>
+
+                    <!-- Viewer message -->
+                    <div th:unless="${isCommander}" class="viewer-msg">
+                        <p>🔒 COMMAND CONTROLS LOCKED FOR VIEWER ROLE</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MIDDLE COLUMN: 21x21 GRID MAP -->
+            <section class="middle-column glass-card">
+                <div class="map-title-bar">
+                    <h2>Tactical Grid Map</h2>
+                    <span class="map-dimensions">21 x 21 GRID</span>
+                </div>
+                <div class="grid-scroll-wrapper">
+                    <div class="map-grid" id="mapGrid">
+                        <!-- 441 Grid cells generated by JS -->
+                    </div>
+                </div>
+                <div class="legend">
+                    <span class="legend-item"><span class="legend-color robot"></span>Unit Position</span>
+                    <span class="legend-item"><span class="legend-color charging"></span>Charging Station</span>
+                    <span class="legend-item"><span class="legend-color obstacle"></span>Obstacle Cell</span>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- FOOTER: COMMAND AUDIT LOGS -->
+        <footer class="glass-card audit-logs-card">
+            <h2>Command Audit Protocol</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>TIMESTAMP</th>
+                            <th>OPERATOR</th>
+                            <th>COMMAND</th>
+                            <th>PAYLOAD</th>
+                            <th>STATUS DETAILS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="auditTableBody">
+                        <tr th:each="log : ${auditLogs}">
+                            <td class="timestamp-col" th:text="${log.timestamp}">TIMESTAMP</td>
+                            <td class="username-col" th:text="${log.username}">OPERATOR</td>
+                            <td><span class="cmd-badge" th:text="${log.commandType}">COMMAND</span></td>
+                            <td class="payload-col" th:text="${log.payload}">PAYLOAD</td>
+                            <td class="status-col" th:text="${log.statusDetails}">STATUS</td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(auditLogs)}" id="noLogsRow">
+                            <td colspan="5" class="empty-msg">No logs recorded in this session.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </footer>
+    </div>
+
+    <!-- CLIENT SCRIPT LOGIC -->
+    <script th:inline="javascript">
+        // Pre-loaded thymeleaf constants
+        const initialX = /*[[${unit.currentPosition.x}]]*/ 0;
+        const initialY = /*[[${unit.currentPosition.y}]]*/ 0;
+        
+        let currentX = initialX;
+        let currentY = initialY;
+        const isCommanderRole = /*[[${isCommander}]]*/ false;
+        const currentOperator = /*[[${username}]]*/ 'anonymous';
+        
+        // Render dynamic grid
+        const mapGrid = document.getElementById('mapGrid');
+        const cells = [];
+        
+        for (let row = 0; row < 21; row++) {
+            for (let col = 0; col < 21; col++) {
+                const x = col;
+                const y = 20 - row; // Map Cartesian bottom-left (0,0) to HTML top-left (0,20)
+                
+                const cell = document.createElement('div');
+                cell.className = 'grid-cell';
+                cell.dataset.x = x;
+                cell.dataset.y = y;
+                
+                // Add cell indicators
+                if (x === 0 && y === 0) {
+                    cell.classList.add('charging-station');
+                    cell.innerHTML = '⚡';
+                }
+                
+                mapGrid.appendChild(cell);
+                cells.push(cell);
+            }
+        }
+
+        function loadGroundTruthMap() {
+            fetch('/api/control/map')
+                .then(response => {
+                    if (response.ok) return response.json();
+                    throw new Error("API Outage or Server Error");
+                })
+                .then(grid => {
+                    if (!grid || grid.length === 0) return;
+                    for (let r = 0; r < grid.length; r++) {
+                        for (let c = 0; c < grid[r].length; c++) {
+                            if (grid[r][c] === 1) {
+                                // Cartesian mapping: x = col, y = 20 - row
+                                markObstacle(c, 20 - r);
+                            }
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.warn("Could not load dynamic map, using static Thymeleaf state as fallback:", err);
+                    // Fallback to Thymeleaf
+                    const initialObstacles = /*[[${obstacles}]]*/ [];
+                    initialObstacles.forEach(obs => {
+                        markObstacle(obs.x, obs.y);
+                    });
+                });
+        }
+
+        // At start, do not load the map. Build the map dynamically as player is moving.
+        // loadGroundTruthMap();
+
+        let isEditingCoordinates = false;
+        const coordXInput = document.getElementById('coordX');
+        const coordYInput = document.getElementById('coordY');
+
+        if (coordXInput && coordYInput) {
+            coordXInput.addEventListener('focus', () => isEditingCoordinates = true);
+            coordYInput.addEventListener('focus', () => isEditingCoordinates = true);
+            coordXInput.addEventListener('blur', () => {
+                setTimeout(() => {
+                    if (document.activeElement !== coordXInput && document.activeElement !== coordYInput) {
+                        isEditingCoordinates = false;
+                    }
+                }, 100);
+            });
+            coordYInput.addEventListener('blur', () => {
+                setTimeout(() => {
+                    if (document.activeElement !== coordXInput && document.activeElement !== coordYInput) {
+                        isEditingCoordinates = false;
+                    }
+                }, 100);
+            });
+        }
+
+        // Set initial robot position
+        updateRobotPosition(initialX, initialY);
+
+        function updateRobotPosition(x, y) {
+            currentX = x;
+            currentY = y;
+            
+            // Clear previous robot cells and target cells if reached
+            document.querySelectorAll('.robot-pos').forEach(cell => {
+                cell.classList.remove('robot-pos');
+                cell.innerText = cell.dataset.x === '0' && cell.dataset.y === '0' ? '⚡' : '';
+            });
+            document.querySelectorAll('.target-cell').forEach(cell => {
+                if (parseInt(cell.dataset.x) === x && parseInt(cell.dataset.y) === y) {
+                    cell.classList.remove('target-cell');
+                }
+            });
+            
+            // Find target cell
+            const targetCell = cells.find(c => parseInt(c.dataset.x) === x && parseInt(c.dataset.y) === y);
+            if (targetCell) {
+                targetCell.classList.remove('obstacle-cell'); // Ensure it is not styled as an obstacle
+                targetCell.classList.add('robot-pos');
+                targetCell.innerText = '●';
+            }
+            
+            // Auto-sync manual coordinate inputs ONLY if user is not actively editing them
+            if (!isEditingCoordinates && coordXInput && coordYInput) {
+                coordXInput.value = x;
+                coordYInput.value = y;
+            }
+        }
+
+        function markObstacle(x, y) {
+            if (x === currentX && y === currentY) return; // Prevent marking robot as obstacle
+            const cell = cells.find(c => parseInt(c.dataset.x) === x && parseInt(c.dataset.y) === y);
+            if (cell && !cell.classList.contains('charging-station')) {
+                cell.classList.add('obstacle-cell');
+            }
+        }
+
+        // Generate Spark Lidar Sweep visualizations
+        const lidarContainer = document.getElementById('lidarContainer');
+        const totalLidarBars = 60;
+        const sparkBars = [];
+        for (let i = 0; i < totalLidarBars; i++) {
+            const bar = document.createElement('div');
+            bar.className = 'lidar-spark-bar';
+            bar.style.height = '15%';
+            lidarContainer.appendChild(bar);
+            sparkBars.push(bar);
+        }
+
+        function updateLidarSweep(sweepArray) {
+            if (!sweepArray || sweepArray.length === 0) return;
+            const step = Math.floor(sweepArray.length / totalLidarBars);
+            for (let i = 0; i < totalLidarBars; i++) {
+                const val = sweepArray[i * step] || 10;
+                // Map range 0-10 to height 10% - 100%
+                const pct = Math.max(10, Math.min(100, (1 - (val / 10)) * 100));
+                sparkBars[i].style.height = pct + '%';
+            }
+        }
+
+        // --- Live Float Toast Notification System ---
+        function showToast(message, type, persistent = false) {
+            if (persistent) {
+                const existing = document.getElementById('toast-' + type);
+                if (existing) return;
+            }
+            
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            if (persistent) {
+                toast.id = 'toast-' + type;
+            }
+            
+            let emoji = 'ℹ️';
+            if (type === 'success') emoji = '✅';
+            if (type === 'warning') emoji = '⚠️';
+            if (type === 'error') emoji = '🚨';
+            
+            toast.innerHTML = `<span>${emoji}</span><span>${message}</span>`;
+            container.appendChild(toast);
+            
+            if (!persistent) {
+                setTimeout(() => {
+                    toast.classList.add('toast-closing');
+                    setTimeout(() => toast.remove(), 300);
+                }, 4000);
+            }
+        }
+        
+        function removePersistentToast(type) {
+            const toast = document.getElementById('toast-' + type);
+            if (toast) {
+                toast.classList.add('toast-closing');
+                setTimeout(() => toast.remove(), 300);
+            }
+        }
+
+        let pulseTimeout = null;
+        let isFeedLost = false;
+        function triggerTelemetryPulse() {
+            if (isFeedLost) {
+                isFeedLost = false;
+                removePersistentToast('telemetry-lost');
+                showToast("Telemetry feed restored!", "success");
+            }
+            
+            if (pulseTimeout) {
+                clearTimeout(pulseTimeout);
+            }
+            
+            pulseTimeout = setTimeout(() => {
+                isFeedLost = true;
+                showToast("Telemetry feed lost: WebSocket connection interrupted.", "warning", true);
+            }, 5000);
+        }
+
+        function handleCommandStatus(data) {
+            removePersistentToast('info');
+            removePersistentToast('warning');
+            
+            if (data.state === 'PROCESSING') {
+                showToast(data.message, "info", true);
+                setApiStatus('pending', "API STATUS: PROCESSING...");
+            } else if (data.state === 'RETRYING') {
+                showToast(data.message, "warning", true);
+                setApiStatus('pending', "API STATUS: RETRYING...");
+            } else if (data.state === 'BUSY') {
+                showToast(data.message, "warning");
+            } else if (data.state === 'ONLINE') {
+                showToast(data.message, "success");
+                setApiStatus('success');
+            }
+        }
+
+        // WebSocket Socket integration (Observer B) — receives REST-sourced data from backend
+        function connectWebSockets() {
+            const socket = new SockJS('/ws-control');
+            const stompClient = Stomp.over(socket);
+            stompClient.debug = null; // Disable console debug output
+            
+            stompClient.connect({}, function (frame) {
+                removePersistentToast('error');
+                showToast("Connected to simulator telemetry stream", "success");
+                
+                stompClient.subscribe('/topic/telemetry', function (message) {
+                    const data = JSON.parse(message.body);
+                    
+                    if (data.type === 'COMMAND_STATUS') {
+                        handleCommandStatus(data);
+                        return;
+                    }
+                    
+                    if (data.type === 'NEW_OBSTACLE') {
+                        showToast("New obstacle detected at (" + data.x + ", " + data.y + ")", "warning");
+                        return;
+                    }
+                    
+                    // Signal live connection pulse
+                    triggerTelemetryPulse();
+                    
+                    // 1. Update Grid Position
+                    updateRobotPosition(data.x, data.y);
+                    
+                    // 2. Render obstacles from server data (REST-sourced, updated once per move)
+                    if (data.obstacles) {
+                        document.querySelectorAll('.obstacle-cell').forEach(cell => {
+                            cell.classList.remove('obstacle-cell');
+                        });
+                        data.obstacles.forEach(obs => {
+                            markObstacle(obs.x, obs.y);
+                        });
+                    }
+                    
+                    // 3. Update Diagnostics Metrics
+                    const batteryText = document.getElementById('batteryText');
+                    const batteryFill = document.getElementById('batteryFill');
+                    batteryText.innerText = data.battery.toFixed(1) + '%';
+                    batteryFill.style.width = data.battery + '%';
+                    
+                    // Battery Alert Toasts & Styles
+                    removePersistentToast('low-battery');
+                    removePersistentToast('dead-battery');
+                    removePersistentToast('charging');
+                    removePersistentToast('stuck');
+
+                    if (data.battery <= 0) {
+                        batteryFill.className = 'battery-fill dead';
+                        showToast("🚨 BATTERY DEPLETED — Robot unresponsive. Reset simulation to recover.", "error", true);
+                        if (moveBtn) moveBtn.disabled = true;
+                    } else if (data.battery < 20) {
+                        batteryFill.className = 'battery-fill critical';
+                        showToast(`⚠️ LOW BATTERY (${data.battery.toFixed(1)}%) — Return to charging station (0,0)`, "warning", true);
+                        if (moveBtn) moveBtn.disabled = false;
+                    } else if (data.x === 0 && data.y === 0 && data.status === 'IDLE' && data.battery < 100) {
+                        batteryFill.className = 'battery-fill charging';
+                        showToast(`🔋 Charging at station... (${data.battery.toFixed(1)}%)`, "info", true);
+                        if (moveBtn) moveBtn.disabled = false;
+                    } else {
+                        batteryFill.className = 'battery-fill';
+                        if (moveBtn) moveBtn.disabled = false;
+                    }
+                    
+                    // Status badge class
+                    const statusBadge = document.getElementById('statusBadge');
+                    statusBadge.innerText = data.status;
+                    statusBadge.className = 'status-indicator ' + data.status.toLowerCase();
+
+                    if (data.status === 'STUCK') {
+                        showToast("⚠️ Robot is STUCK — attempted to move into an obstacle. Choose a different path.", "warning", true);
+                    }
+                    
+                    // 4. Update Lidar Cardinal Plane
+                    if (data.lidar) {
+                        document.getElementById('valN').innerText = Math.ceil(data.lidar[90]);
+                        document.getElementById('valNE').innerText = Math.ceil(data.lidar[45]);
+                        document.getElementById('valE').innerText = Math.ceil(data.lidar[0]);
+                        document.getElementById('valSE').innerText = Math.ceil(data.lidar[315]);
+                        document.getElementById('valS').innerText = Math.ceil(data.lidar[270]);
+                        document.getElementById('valSW').innerText = Math.ceil(data.lidar[225]);
+                        document.getElementById('valW').innerText = Math.ceil(data.lidar[180]);
+                        document.getElementById('valNW').innerText = Math.ceil(data.lidar[135]);
+                        
+                        updateLidarSweep(data.lidar);
+                    }
+                });
+            }, function (error) {
+                showToast("Connection failed. Retrying telemetry handshake...", "error", true);
+                setTimeout(connectWebSockets, 5000);
+            });
+        }
+        
+        document.getElementById('connStatusText').innerText = 'API STATUS: POLLING'; setTimeout(() => window.location.reload(), 5000);
+
+        function setApiStatus(state, errorText = '') {
+            const connBtn = document.getElementById('connBtn');
+            const pulseDot = document.getElementById('pulseDot');
+            const connStatusText = document.getElementById('connStatusText');
+            
+            if (!connBtn || !pulseDot || !connStatusText) return;
+            
+            connBtn.classList.remove('active-green', 'active-blue', 'error-red');
+            pulseDot.classList.remove('active-green', 'active-blue', 'error-red');
+            
+            if (state === 'pending') {
+                connBtn.classList.add('active-blue');
+                pulseDot.classList.add('active-blue');
+                connStatusText.innerText = 'API STATUS: RETRYING...';
+            } else if (state === 'success') {
+                connBtn.classList.add('active-green');
+                pulseDot.classList.add('active-green');
+                connStatusText.innerText = 'API STATUS: ONLINE';
+                removePersistentToast('error');
+            } else if (state === 'error') {
+                connBtn.classList.add('error-red');
+                pulseDot.classList.add('error-red');
+                connStatusText.innerText = 'API STATUS: OFFLINE (503)';
+                showToast(errorText || "Simulator connection lost. Outage or high latency detected.", "error", true);
+            }
+        }
+
+        // General manual steering move command
+        let steerMoving = false;
+        function transmitSteerMove(x, y) {
+            if (x < 0 || x > 20 || y < 0 || y > 20) return;
+            if (steerMoving) return;
+            
+            steerMoving = true;
+            showToast(`Transmitting steer jog to coordinate (${x}, ${y})...`, 'info');
+            setApiStatus('pending');
+            
+            fetch(`/api/control/move?x=${x}&y=${y}`, {
+                method: 'POST'
+            })
+            .then(async response => {
+                const txt = await response.text();
+                if (response.ok) {
+                    setApiStatus('success');
+                    showToast(`Navigated successfully to (${x}, ${y})`, 'success');
+                    appendLocalAudit('MOVE', `(${x}, ${y})`, txt);
+                } else {
+                    if (response.status === 503) {
+                        if (txt.toLowerCase().includes("busy")) {
+                            showToast(txt, 'warning');
+                        } else {
+                            setApiStatus('error', txt);
+                        }
+                    } else {
+                        showToast(`Move blocked: ${txt}`, 'warning');
+                    }
+                }
+            })
+            .catch(err => {
+                setApiStatus('error', "Simulator unreachable: Steering command failed");
+            })
+            .finally(() => {
+                steerMoving = false;
+            });
+        }
+
+        // COMMANDER ACTIONS PROTOCOLS
+        const moveBtn = document.getElementById('moveBtn');
+        const resetBtn = document.getElementById('resetBtn');
+
+        if (moveBtn) {
+            moveBtn.addEventListener('click', function() {
+                const xVal = document.getElementById('coordX').value;
+                const yVal = document.getElementById('coordY').value;
+                
+                if (xVal === '' || yVal === '') {
+                    showToast('Supply valid coordinate integers for target position', 'warning');
+                    return;
+                }
+                
+                moveBtn.disabled = true;
+                moveBtn.innerText = 'TRANSMITTING...';
+                showToast(`Transmitting coordinates move target (${xVal}, ${yVal})...`, 'info');
+                setApiStatus('pending');
+                
+                fetch(`/api/control/move?x=${xVal}&y=${yVal}`, {
+                    method: 'POST'
+                })
+                .then(async response => {
+                    const txt = await response.text();
+                    if (!response.ok) {
+                        if (response.status === 503) {
+                            if (txt.toLowerCase().includes("busy")) {
+                                showToast(txt, 'warning');
+                            } else {
+                                setApiStatus('error', txt);
+                            }
+                        } else {
+                            showToast(`Command rejected: ${txt}`, 'warning');
+                        }
+                    } else {
+                        setApiStatus('success');
+                        showToast(`Target command accepted!`, 'success');
+                        appendLocalAudit('MOVE', `(${xVal}, ${yVal})`, txt);
+                    }
+                })
+                .catch(err => {
+                    setApiStatus('error', "Simulator unreachable: Transmit target command failed");
+                })
+                .finally(() => {
+                    moveBtn.disabled = false;
+                    moveBtn.innerText = 'TRANSMIT MOVE';
+                });
+            });
+        }
+
+        if (resetBtn) {
+            resetBtn.addEventListener('click', function() {
+                if (!confirm('Are you sure you wish to trigger a full Simulation Reset? This will clear our mapped obstacles memory.')) {
+                    return;
+                }
+                
+                resetBtn.disabled = true;
+                resetBtn.innerText = 'RESETTING...';
+                showToast('Initiating simulation reset protocols...', 'info');
+                setApiStatus('pending');
+                
+                fetch('/api/control/reset', {
+                    method: 'POST'
+                })
+                .then(async response => {
+                    const txt = await response.text();
+                    if (!response.ok) {
+                        if (response.status === 503) {
+                            if (txt.toLowerCase().includes("busy")) {
+                                showToast(txt, 'warning');
+                            } else {
+                                setApiStatus('error', txt);
+                            }
+                        } else {
+                            showToast(`Reset failed: ${txt}`, 'warning');
+                        }
+                    } else {
+                        setApiStatus('success');
+                        showToast('Simulation reset accepted! Grid cleared.', 'success');
+                        document.querySelectorAll('.obstacle-cell').forEach(cell => {
+                            cell.classList.remove('obstacle-cell');
+                        });
+                        appendLocalAudit('RESET', '{}', txt);
+                    }
+                })
+                .catch(err => {
+                    setApiStatus('error', "Simulator unreachable: Reset failed");
+                })
+                .finally(() => {
+                    resetBtn.disabled = false;
+                    resetBtn.innerText = 'RESET';
+                });
+            });
+        }
+
+        // Commander D-Pad, Keyboard WASD & Coordinate Map Clicks binding
+        if (isCommanderRole) {
+            const dpadN = document.getElementById('dpadN');
+            const dpadS = document.getElementById('dpadS');
+            const dpadE = document.getElementById('dpadE');
+            const dpadW = document.getElementById('dpadW');
+
+            if (dpadN) dpadN.addEventListener('click', () => transmitSteerMove(currentX, currentY + 1));
+            if (dpadS) dpadS.addEventListener('click', () => transmitSteerMove(currentX, currentY - 1));
+            if (dpadE) dpadE.addEventListener('click', () => transmitSteerMove(currentX + 1, currentY));
+            if (dpadW) dpadW.addEventListener('click', () => transmitSteerMove(currentX - 1, currentY));
+
+            // Grid tactical coordinate click-to-move
+            cells.forEach(cell => {
+                cell.style.cursor = 'pointer';
+                cell.addEventListener('click', function() {
+                    const x = parseInt(cell.dataset.x);
+                    const y = parseInt(cell.dataset.y);
+                    
+                    if (cell.classList.contains('obstacle-cell')) {
+                        showToast("Safety check: Navigating into identified obstacles is blocked.", "warning");
+                        return;
+                    }
+                    
+                    // Add beautiful target indicator
+                    document.querySelectorAll('.target-cell').forEach(c => c.classList.remove('target-cell'));
+                    cell.classList.add('target-cell');
+                    showToast(`🎯 Navigating to target coordinate (${x}, ${y})...`, "info");
+                    
+                    transmitSteerMove(x, y);
+                });
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', function(event) {
+                if (document.activeElement.tagName === 'INPUT') return;
+
+                let targetX = currentX;
+                let targetY = currentY;
+                let btn = null;
+
+                if (event.key === 'w' || event.key === 'W' || event.key === 'ArrowUp') {
+                    targetY = currentY + 1;
+                    btn = dpadN;
+                } else if (event.key === 's' || event.key === 'S' || event.key === 'ArrowDown') {
+                    targetY = currentY - 1;
+                    btn = dpadS;
+                } else if (event.key === 'a' || event.key === 'A' || event.key === 'ArrowLeft') {
+                    targetX = currentX - 1;
+                    btn = dpadW;
+                } else if (event.key === 'd' || event.key === 'D' || event.key === 'ArrowRight') {
+                    targetX = currentX + 1;
+                    btn = dpadE;
+                } else {
+                    return;
+                }
+
+                event.preventDefault(); // Block scroll
+
+                if (btn) {
+                    btn.classList.add('active-pulse');
+                    setTimeout(() => btn.classList.remove('active-pulse'), 150);
+                }
+
+                transmitSteerMove(targetX, targetY);
+            });
+        }
+
+        function appendLocalAudit(cmd, payload, status) {
+            const tableBody = document.getElementById('auditTableBody');
+            const noLogs = document.getElementById('noLogsRow');
+            if (noLogs) noLogs.remove();
+            
+            const tr = document.createElement('tr');
+            const now = new Date().toISOString();
+            
+            tr.innerHTML = `
+                <td class="timestamp-col">${now}</td>
+                <td class="username-col">${currentOperator}</td>
+                <td><span class="cmd-badge">${cmd}</span></td>
+                <td class="payload-col">${payload}</td>
+                <td class="status-col">${status}</td>
+            `;
+            tableBody.insertBefore(tr, tableBody.firstChild);
+        }
+    </script>
+</body>
+</html>
