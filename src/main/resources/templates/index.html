@@ -594,7 +594,7 @@
             });
         }
         
-        document.getElementById('connStatusText').innerText = 'API STATUS: POLLING'; setTimeout(() => window.location.reload(), 5000);
+        connectWebSockets();
 
         function setApiStatus(state, errorText = '') {
             const connBtn = document.getElementById('connBtn');
