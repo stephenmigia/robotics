@@ -74,7 +74,7 @@ public class UnitService {
             SensorResponse sensorRes = null;
             // CAPTURE EXACT POSITION WHERE SENSOR API CALL IS INITIATED:
             // This guarantees obstacle calculations remain 100% accurate even if fetchSensors() suffers from network latency
-            
+            Position idleOrigin = new Position(pos.getX(), pos.getY());
 
             try {
                 sensorRes = apiClient.fetchSensors();
@@ -101,7 +101,7 @@ public class UnitService {
             // 3. Update obstacles ONLY when robot is IDLE using the validator method and exact idleOrigin
             if (status == Status.IDLE && sensorRes != null) {
                 List<Position> newObstacles = virtualEnvironment.validateAndUpdateObstacles(
-                        pos,
+                        idleOrigin,
                         liveUnit.getProximitySensor(),
                         liveUnit.getLidarSensor()
                 );
